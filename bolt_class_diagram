@@ -1,0 +1,222 @@
+@startuml
+
+class bolt.node {
+   -bucket : *Bucket
+   -children : nodes
+   -inodes : inodes
+   -isLeaf : bool
+   -key : []byte
+   -parent : *node
+   -pgid : pgid
+   -spilled : bool
+   -unbalanced : bool
+
+   -childAt(index int) : *node
+   -childIndex(child *node) : int
+   -del(key []byte)
+   -dereference()
+   -free()
+   -minKeys() : int
+   -nextSibling() : *node
+   -numChildren() : int
+   -pageElementSize() : int
+   -prevSibling() : *node
+   -put(oldKey, newKey, value []byte, pgid pgid, flags uint32)
+   -read(p *page)
+   -rebalance()
+   -removeChild(target *node)
+   -root() : *node
+   -size() : int
+   -sizeLessThan(v int) : bool
+   -spill() : error
+   -split(pageSize int) : []*node
+   -splitIndex(threshold int) : int, int
+   -splitTwo(pageSize int) : *node, *node
+   -write(p *page)
+}
+note bottom: an in-memory, deserialized page
+
+class bolt.inode {
+	flags uint32
+	pgid  pgid
+	key   []byte
+	value []byte
+}
+note bottom: inode represents an internal node inside of a node.
+
+class bolt.bucket {
+   -root : pgid
+   -sequence : uint64
+}
+note bottom:  bucket represents the on-file representation of a bucket.
+
+class bolt.Bucket {
+   *bucket
+
+   +FillPercent : float64
+
+   -buckets : map[string]*Bucket
+   -nodes : map[pgid]*node
+   -page : *page
+   -rootNode : *node
+   -tx : *Tx
+}
+note bottom: a collection of key/value pairs inside the database. 
+
+class bolt.page {
+   -id       pgid
+   -flags    uint16
+   -count    uint16
+   -overflow uint32
+   -ptr      uintptr
+
+   -branchPageElement(index uint16) : *branchPageElement
+   -branchPageElements() : []branchPageElement
+   -hexdump(n int)
+   -leafPageElement(index uint16) : *leafPageElement
+   -leafPageElements() : []leafPageElement
+   -meta() : *meta
+   -typ() : string
+}
+
+class bolt.branchPageElement {
+   -pos : uint32
+   -ksize : uint32
+   -pgid : pgid
+
+   -key() : []byte
+}
+
+class bolt.leafPageElement {
+   -flags : uint32
+   -pos : uint32
+   -ksize : uint32
+   -vsize : uint32
+   
+   -key() : []byte
+   -value() : []byte
+}
+
+class bolt.Tx {
+   +WriteFlag : int
+   -commitHandlers : []func()
+   -db : *DB
+   -managed : bool
+   -meta : *meta
+   -pages : map[pgid]*page
+   -root : Bucket
+   -stats : TxStats
+   -writable : bool
+}
+note bottom: Tx represents a read-only or read/write transaction on the database.
+
+class bolt.DB {
+   +AllocSize : int
+   +MaxBatchDelay : time.Duration
+   +MaxBatchSize : int
+   +MmapFlags : int
+   +NoGrowSync : bool
+   +NoSync : bool
+   +StrictMode : bool
+   -batch : *batch
+   -batchMu : sync.Mutex
+   -data : *[]byte
+   -dataref : []byte
+   -datasz : int
+   -file : *os.File
+   -filesz : int
+   -freelist : *freelist
+   -lockfile : *os.File
+   -meta0 : *meta
+   -meta1 : *meta
+   -metalock : sync.Mutex
+   -mmaplock : sync.RWMutex
+   -opened : bool
+   -ops
+   -pagePool : sync.Pool
+   -pageSize : int
+   -path : string
+   -readOnly : bool
+   -rwlock : sync.Mutex
+   -rwtx : *Tx
+   -statlock : sync.RWMutex
+   -stats : Stats
+   -txs : []*Tx
+
+   +Batch(fn func(*Tx) error) : error
+   +Begin(writable bool) : *Tx, error
+   +Close() : error
+   +GoString() : string
+   +Info() : *Info
+   +IsReadOnly() : bool
+   +Path() : string
+   +Stats() : Stats
+   +String() : string
+   +Sync() : error
+   +Update(fn func(*Tx) error) : error
+   +View(fn func(*Tx) error) : error
+   -allocate(count int) : *page, error
+   -beginRWTx() : *Tx, error
+   -beginTx() : *Tx, error
+   -close() : error
+   -grow(sz int) : error
+   -init() : error
+   -meta() : *meta
+   -mmap(minsz int) : error
+   -mmapSize(size int) : int, error
+   -munmap() : error
+   -page(id pgid) : *page
+   -pageInBuffer(b []byte, id pgid) : *page
+   -removeTx(tx *Tx)
+}
+note bottom: DB represents a collection of buckets persisted to a file on disk.
+
+class bolt.meta {
+   -checksum : uint64
+   -flags : uint32
+   -freelist : pgid
+   -magic : uint32
+   -pageSize : uint32
+   -pgid : pgid
+   -root : bucket
+   -txid : txid
+   -version : uint32
+
+   -copy(dest *meta)
+   -sum64() : uint64
+   -validate() : error
+   -write(p *page)
+}
+
+class bolt.freelist {
+   -cache : map[pgid]bool
+   -ids : []pgid
+   -pending : map[txid][]pgid
+
+   -allocate(n int) : pgid
+   -copyall(dst []pgid)
+   -count() : int
+   -free(txid txid, p *page)
+   -free_count() : int
+   -freed(pgid pgid) : bool
+   -pending_count() : int
+   -read(p *page)
+   -reindex()
+   -release(txid txid)
+   -reload(p *page)
+   -rollback(txid txid)
+   -size() : int
+   -write(p *page) : error
+}
+
+bolt.Bucket <-- bolt.node 
+bolt.bucket <-- bolt.Bucket
+bolt.page <-- bolt.Bucket
+bolt.Tx <-- bolt.Bucket
+bolt.meta <-- bolt.Tx
+bolt.DB <-- bolt.Tx
+bolt.inode o-- bolt.node
+'bolt.node o-- bolt.node
+bolt.freelist <-- bolt.DB
+
+@enduml
