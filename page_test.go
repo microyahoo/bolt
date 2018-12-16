@@ -47,6 +47,15 @@ func TestPgids_merge(t *testing.T) {
 	}
 }
 
+func TestPgids_one(t *testing.T) {
+	a := pgids{4, 8, 10, 12}
+	b := pgids{2, 3, 7, 9}
+	c := a.merge(b)
+	if !reflect.DeepEqual(c, pgids{2, 3, 4, 7, 8, 9, 10, 12}) {
+		t.Errorf("mismatch: %v", c)
+	}
+}
+
 func TestPgids_merge_quick(t *testing.T) {
 	if err := quick.Check(func(a, b pgids) bool {
 		// Sort incoming lists.
