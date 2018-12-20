@@ -60,6 +60,36 @@ class bolt.Bucket {
    -page : *page
    -rootNode : *node
    -tx : *Tx
+
+   +Bucket(name []byte) : *Bucket
+   +CreateBucket(key []byte) : *Bucket, error
+   +CreateBucketIfNotExists(key []byte) : *Bucket, error
+   +Cursor() : *Cursor
+   +Delete(key []byte) : error
+   +DeleteBucket(key []byte) : error
+   +ForEach(fn func(k, v []byte) error) : error
+   +Get(key []byte) : []byte
+   +NextSequence() : uint64, error
+   +Put(key []byte, value []byte) : error
+   +Root() : pgid
+   +Sequence() : uint64
+   +SetSequence(v uint64) : error
+   +Stats() : BucketStats
+   +Tx() : *Tx
+   +Writable() : bool
+   -_forEachPageNode(pgid pgid, depth int, fn func(*page, *node, int))
+   -dereference()
+   -forEachPage(fn func(*page, int))
+   -forEachPageNode(fn func(*page, *node, int))
+   -free()
+   -inlineable() : bool
+   -maxInlineBucketSize() : int
+   -node(pgid pgid, parent *node) : *node
+   -openBucket(value []byte) : *Bucket
+   -pageNode(id pgid) : *page, *node
+   -rebalance()
+   -spill() : error
+   -write() : []byte
 }
 note bottom: a collection of key/value pairs inside the database. 
 
