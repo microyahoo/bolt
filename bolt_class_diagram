@@ -2,14 +2,14 @@
 
 class bolt.node {
    -bucket : *Bucket
+   -isLeaf : bool
+   -unbalanced : bool
+   -spilled : bool
+   -key : []byte
+   -pgid : pgid
+   -parent : *node
    -children : nodes
    -inodes : inodes
-   -isLeaf : bool
-   -key : []byte
-   -parent : *node
-   -pgid : pgid
-   -spilled : bool
-   -unbalanced : bool
 
    -childAt(index int) : *node
    -childIndex(child *node) : int
@@ -128,50 +128,52 @@ class bolt.leafPageElement {
 }
 
 class bolt.Tx {
+	-writable       bool
+	-managed        bool
+	-db             *DB
+	-meta           *meta
+	-root           Bucket
+	-pages          map[pgid]*page
+	-stats          TxStats
+	-commitHandlers []func()
+
    +WriteFlag : int
-   -commitHandlers : []func()
-   -db : *DB
-   -managed : bool
-   -meta : *meta
-   -pages : map[pgid]*page
-   -root : Bucket
-   -stats : TxStats
-   -writable : bool
 }
 note bottom: Tx represents a read-only or read/write transaction on the database.
 
 class bolt.DB {
-   +AllocSize : int
-   +MaxBatchDelay : time.Duration
-   +MaxBatchSize : int
-   +MmapFlags : int
-   +NoGrowSync : bool
-   +NoSync : bool
    +StrictMode : bool
-   -batch : *batch
-   -batchMu : sync.Mutex
-   -data : *[]byte
-   -dataref : []byte
-   -datasz : int
+   +NoSync : bool
+   +NoGrowSync : bool
+   +MmapFlags : int
+   +MaxBatchSize : int
+   +MaxBatchDelay : time.Duration
+   +AllocSize : int
+
+   -path : string
    -file : *os.File
-   -filesz : int
-   -freelist : *freelist
    -lockfile : *os.File
+   -dataref : []byte
+   -data : *[]byte
+   -datasz : int
+   -filesz : int
    -meta0 : *meta
    -meta1 : *meta
+   -pageSize : int
+   -opened : bool
+   -rwtx : *Tx
+   -txs : []*Tx
+   -stats : Stats
+   -freelist : *freelist
+   -pagePool : sync.Pool
+   -batchMu : sync.Mutex
+   -batch : *batch
+   -rwlock : sync.Mutex
    -metalock : sync.Mutex
    -mmaplock : sync.RWMutex
-   -opened : bool
-   -ops
-   -pagePool : sync.Pool
-   -pageSize : int
-   -path : string
-   -readOnly : bool
-   -rwlock : sync.Mutex
-   -rwtx : *Tx
    -statlock : sync.RWMutex
-   -stats : Stats
-   -txs : []*Tx
+   -ops
+   -readOnly : bool
 
    +Batch(fn func(*Tx) error) : error
    +Begin(writable bool) : *Tx, error
@@ -202,15 +204,15 @@ class bolt.DB {
 note bottom: DB represents a collection of buckets persisted to a file on disk.
 
 class bolt.meta {
-   -checksum : uint64
-   -flags : uint32
-   -freelist : pgid
-   -magic : uint32
-   -pageSize : uint32
-   -pgid : pgid
-   -root : bucket
-   -txid : txid
-   -version : uint32
+	-magic    uint32
+	-version  uint32
+	-pageSize uint32
+	-flags    uint32
+	-root     bucket
+	-freelist pgid
+	-pgid     pgid
+	-txid     txid
+	-checksum uint64
 
    -copy(dest *meta)
    -sum64() : uint64
