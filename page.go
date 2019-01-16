@@ -172,6 +172,7 @@ func mergepgids(dst, a, b pgids) {
 
 	// Merged will hold all elements from both lists.
 	merged := dst[:0]
+	// Slicing does not copy the slice's data. It creates a new slice value that points to the original array.
 
 	// Assign lead to the slice with a lower starting value, follow to the higher value.
 	lead, follow := a, b

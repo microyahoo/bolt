@@ -877,6 +877,8 @@ The best places to start are the main entry points into Bolt:
 If you have additional notes that could be helpful for others, please submit
 them via pull request.
 
+## Class Diagram
+![class-diagram](https://github.com/microyahoo/bolt/blob/update/test/boltdb_class_diagram.svg)
 
 ## Other Projects Using Bolt
 

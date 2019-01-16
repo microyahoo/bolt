@@ -80,6 +80,10 @@ func munmap(db *DB) error {
 }
 
 // NOTE: This function is copied from stdlib because it is not available on darwin.
+// The madvise() system call is used to give advice or directions to the
+// kernel about the address range beginning at address addr and with
+// size length bytes. In most cases, the goal of such advice is to
+// improve system or application performance.
 func madvise(b []byte, advice int) (err error) {
 	_, _, e1 := syscall.Syscall(syscall.SYS_MADVISE, uintptr(unsafe.Pointer(&b[0])), uintptr(len(b)), uintptr(advice))
 	if e1 != 0 {
@@ -87,3 +91,12 @@ func madvise(b []byte, advice int) (err error) {
 	}
 	return
 }
+
+// func EpollCreate(size int) (fd int, err error) {
+// 	r0, _, e1 := syscall.RawSyscall(syscall.SYS_EPOLL_CREATE, uintptr(size), 0, 0)
+// 	fd = int(r0)
+// 	if e1 != 0 {
+// 		err = e1
+// 	}
+// 	return
+// }
